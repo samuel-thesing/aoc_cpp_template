@@ -275,9 +275,9 @@ std::pair<T, T> split_once(const std::string& s, const std::string& delim, std::
 	};
 }
 
-template<typename T, typename... Args> requires (std::is_same_v<T, Args...>)
+template<typename T, typename... Args> requires (std::is_same_v<T, Args...> && sizeof...(Args) > 1)
 T max(T arg, Args... args) {
-	return max(arg, max(args));
+	return max(arg, max(args...));
 }
 
 template<typename T, typename U> requires (std::is_same_v<T, U>)
@@ -285,9 +285,9 @@ T max(T t, U u) {
 	return t > u ? t : u;
 }
 
-template<typename T, typename... Args> requires (std::is_same_v<T, Args...>)
+template<typename T, typename... Args> requires (std::is_same_v<T, Args...> && sizeof...(Args) > 1)
 T min(T arg, Args... args) {
-	return min(arg, min(args));
+	return min(arg, min(args...));
 }
 
 template<typename T, typename U> requires (std::is_same_v<T, U>)
@@ -493,7 +493,7 @@ public:
 		if (tests.empty()) return true;
 
 		Logger::info("==================================================");
-		Logger::info("Running {} Tests", tests.size());
+		Logger::info("Running {} Test(s)", tests.size());
 		Logger::info("==================================================");
 
 		tests_failed = 0;
@@ -504,7 +504,7 @@ public:
 		}
 
 		Logger::info("==================================================");
-		Logger::info("Tests Finished");
+		Logger::info("Test(s) Finished");
 		Logger::info("--------------------------------------------------");
 		if (tests_succeeded != 0) {
 			Logger::info("Succeded: {}", tests_succeeded);
