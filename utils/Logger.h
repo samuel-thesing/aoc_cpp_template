@@ -5,6 +5,7 @@
 
 class Logger {
 private:
+	static bool initialized;
 	static std::shared_ptr<spdlog::logger> logger;
 
 public:
@@ -37,7 +38,7 @@ public:
 	}
 
 	template <typename... Args>
-	static void critical(fmt::format_string<Args...> fmt, Args &&...args) {
+	[[noreturn]] static void critical(fmt::format_string<Args...> fmt, Args &&...args) {
 		logger->critical(fmt, std::forward<Args>(args)...);
 		std::exit(0xDEAD);
 	}

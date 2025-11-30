@@ -1,6 +1,6 @@
 import os
 
-year = "2024"
+year = "2025"
 
 class Template:
     name: str = None
@@ -53,7 +53,7 @@ def create_day(day: int) -> bool:
         num_updated += 1
 
 
-for day in range(1, 26):
+for day in range(1, 12+1):
     create_day(day)
 
 print(f"Created {num_created} days")

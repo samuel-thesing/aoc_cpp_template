@@ -18,10 +18,11 @@
 #include <iostream>
 #include <functional>
 #include <sstream>
+#include <numeric>
 
-#include <Logger.hpp>
+#include <Logger.h>
 
-#include "matrix.hpp"
+#include "Matrix.h"
 
 
 /* ====================================================================================================
@@ -59,9 +60,7 @@ struct std::hash<Point> {
  * @param filler char used to fill the string - default space
  * @return filled string
  */
-std::string pad_left(const std::string& s, int len, char filler = ' ') {
-	return std::string(std::max(len - s.length(), 0ull), filler) + s;
-}
+std::string pad_left(const std::string& s, int len, char filler = ' ');
 
 /**
  * fills the right side of a string to the given length using the filler character
@@ -70,18 +69,10 @@ std::string pad_left(const std::string& s, int len, char filler = ' ') {
  * @param filler char used to fill the string - default space
  * @return filled string
  */
-std::string pad_right(const std::string& s, int len, char filler = ' ') {
-	return s + std::string(std::max(len - s.length(), 0ull), filler);
-}
+std::string pad_right(const std::string& s, int len, char filler = ' ');
+std::string pad_center(const std::string& s, int len, char filler = ' ');
 
-std::string pad_center(const std::string& s, int len, char filler = ' ') {
-	auto len_half = s.length() / 2;
-	return pad_right(pad_left(s, len_half, filler), len - len_half, filler);
-}
-
-std::string repeat(char c, int n) {
-	return std::string(n, c);
-}
+std::string repeat(char c, int n);
 
 /**
  * trims whitespace (recognized using
@@ -89,69 +80,16 @@ std::string repeat(char c, int n) {
  * @param s string to be trimmed
  * @return trimmed string
  */
-std::string trim(std::string s) {
-	s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](unsigned char c) {
-		return !std::isspace(c);
-	}));
+std::string trim(std::string s);
 
-	s.erase(std::find_if(s.rbegin(), s.rend(), [](unsigned char c) {
-		return !std::isspace(c);
-	}).base(), s.end());
+std::string replace_all(const std::string& str, const std::string& pattern, const std::string& replace);
+std::string replace_regex(const std::string& str, const std::regex& pattern, const char* replace);
+std::string replace_regex_all(const std::string& str, const std::regex& pattern, const char* replace);
 
-	return s;
-}
+size_t find_nth(const std::string& str, const std::string& pattern, size_t n);
+size_t find_nth(const std::string& str, const std::regex& pattern, size_t n);
 
-std::string replace_all(const std::string& str, const std::string& pattern, const std::string& replace) {
-	size_t n = 0;
-	std::string str_cpy = str;
-
-	while ((n = str_cpy.find(pattern, n)) != std::string::npos){
-		str_cpy.replace(n, pattern.size(), replace);
-		n += replace.size();
-	}
-
-	return str_cpy;
-}
-
-std::string replace_regex(const std::string& str, const std::regex& pattern, const char* replace) {
-	return std::regex_replace(str, pattern, replace, std::regex_constants::match_flag_type::format_first_only);
-}
-
-std::string replace_regex_all(const std::string& str, const std::regex& pattern, const char* replace) {
-	return std::regex_replace(str, pattern, replace);
-}
-
-size_t find_nth(const std::string& str, const std::string& pattern, size_t n) {
-	int count = 0;
-	size_t last_idx = str.find(pattern, n);
-	while (last_idx != std::string::npos) {
-		if (count == n) {
-			return last_idx;
-		}
-		last_idx = str.find(pattern, last_idx+1);
-		++count;
-	}
-	return std::string::npos;
-}
-
-size_t find_nth(const std::string& str, const std::regex& pattern, size_t n) {
-	std::sregex_iterator iter(str.begin(), str.end(), pattern);
-	std::sregex_iterator end;
-	for (int i = 0; i < n && iter != end; ++iter, ++i) {}
-	if (iter == end) {
-		return std::string::npos;
-	}
-	return iter->position(0);
-}
-
-std::optional<std::string> replace_nth(const std::string& str, const std::string& pattern, std::string replace, int n) {
-	auto idx = find_nth(str, pattern, n);
-	if (idx == std::string::npos) {
-		return {};
-	}
-
-	return str.substr(0, idx) + replace + str.substr(idx + pattern.size());
-}
+std::optional<std::string> replace_nth(const std::string& str, const std::string& pattern, std::string replace, int n);
 
 /* ====================================================================================================
  * Reading Data
@@ -162,32 +100,9 @@ std::optional<std::string> replace_nth(const std::string& str, const std::string
  * @return content
  * @throws 0xDEAD If file could not be found or opened
  */
-std::string read_file(const std::string& filename) {
-	auto dir_name = std::filesystem::current_path().parent_path().filename().string();
-	dir_name = dir_name.substr(0, dir_name.size() - 2);
-	auto cwd = std::filesystem::current_path() / "../../../" / "src" / dir_name;
-	cwd = std::filesystem::canonical(cwd);
-	auto file = std::ifstream(cwd / filename, std::ios::binary | std::ios::in);
-    if (!file.is_open()) {
-		Logger::critical("Failed to open file '{}'. CWD: {}", filename, cwd.string());
-    }
+std::string read_file(const std::string& filename);
 
-	std::stringstream contents;
-	contents << file.rdbuf();
-
-	return replace_all(contents.str(), "\r\n", "\n");
-}
-
-std::vector<std::string> split_lines(const std::string& s) {
-	std::vector<std::string> result;
-	std::stringstream ss(s);
-	std::string line;
-	while (std::getline(ss, line)) {
-		line.erase(std::remove(line.begin(), line.end(), '\r'), line.end());
-		result.emplace_back(line);
-	}
-	return result;
-}
+std::vector<std::string> split_lines(const std::string& s);
 
 /* ====================================================================================================
  * Printing Data
@@ -294,31 +209,7 @@ inline long long string_to_generic<long long>(std::string s) {
  *	@param s string to be split
  *	@param delim delimiter (can be longer than 1 char)
  */
-std::vector<std::string> split(const std::string& s, const std::string& delim) {
-	if (delim.empty()) {
-		Logger::critical("`split` received an empty delimiter");
-		return {};
-	}
-	if (trim(s).empty()) {
-		return {};
-	}
-
-	size_t lastDelim = 0;
-	auto curDelim = s.find(delim, lastDelim);
-	std::vector<std::string> parts{};
-
-	while (curDelim != std::string::npos) {
-		std::string part = s.substr(lastDelim, curDelim - lastDelim);
-		parts.emplace_back(trim(part));
-		lastDelim = curDelim + delim.size();
-		curDelim = s.find(delim, lastDelim);
-	}
-
-	auto lastPart = s.substr(lastDelim);
-	parts.emplace_back(trim(lastPart));
-
-	return parts;
-}
+std::vector<std::string> split(const std::string& s, const std::string& delim);
 
 /**
  *	Splits a given string at the given delimiter and trims the parts before converting them using the given function.
@@ -348,9 +239,7 @@ std::vector<T> split(const std::string& s, const std::string& delim) {
 	return result;
 }
 
-std::vector<int> split_int(const std::string& s, const std::string& delim) {
-	return split<int>(s, delim);
-}
+std::vector<int> split_int(const std::string& s, const std::string& delim);
 
 /**
  *	Splits a given string at the first occurrence of the given delimiter and returns both parts as pair
@@ -358,20 +247,13 @@ std::vector<int> split_int(const std::string& s, const std::string& delim) {
  *	@param delim delimiter (can be longer than 1 char)
  *	@param fn converts parts after splitting using this function
  */
-std::pair<std::string, std::string> split_once(const std::string& s, const std::string& delim) {
-	auto idx = s.find(delim);
-	if (idx == std::string::npos) {
-		return {s, ""};
-	}
-
-	return {s.substr(0, idx), s.substr(idx + delim.size())};
-}
+std::pair<std::string, std::string> split_once(const std::string& s, const std::string& delim);
 
 template<typename T, typename U>
 std::pair<T, U> split_once(const std::string& s, const std::string& delim) {
 	auto idx = s.find(delim);
 	if (idx == std::string::npos) {
-		return {s, ""};
+		Logger::critical("Failed split_once");
 	}
 
 	return {
@@ -384,7 +266,7 @@ template<typename T>
 std::pair<T, T> split_once(const std::string& s, const std::string& delim, std::function<T(std::string)> fn) {
 	auto idx = s.find(delim);
 	if (idx == std::string::npos) {
-		return {s, ""};
+		Logger::critical("Failed split_once");
 	}
 
 	return {
@@ -436,6 +318,20 @@ std::tuple<Args...> extract_data(std::string s, const std::regex& pattern) {
 }
 
 template<typename... Args>
+std::vector<std::tuple<Args...>> extract_data_all(std::string s, const std::regex& pattern) {
+	std::sregex_iterator iter(s.begin(), s.end(), pattern);
+	std::sregex_iterator end;
+	std::vector<std::tuple<Args...>> result{};
+	while (iter != end) {
+		std::smatch match = *iter;
+		result.push_back(make_tuple_from_match<Args...>(match, std::index_sequence_for<Args...>{}));
+		++iter;
+	}
+
+	return result;
+}
+
+template<typename... Args>
 std::optional<std::tuple<Args...>> extract_data_opt(std::string s, const std::regex& pattern) {
 	std::smatch match;
 	if (!std::regex_match(s, match, pattern)) {
@@ -445,11 +341,7 @@ std::optional<std::tuple<Args...>> extract_data_opt(std::string s, const std::re
 	return make_tuple_from_match<Args...>(match, std::index_sequence_for<Args...>{});
 }
 
-std::vector<std::string> split_regex(const std::string& s, std::regex& pattern) {
-	std::sregex_token_iterator iter(s.begin(), s.end(), pattern, -1);
-	std::sregex_token_iterator end;
-	return {iter, end};
-}
+std::vector<std::string> split_regex(const std::string& s, std::regex& pattern);
 
 template<typename T>
 std::vector<std::string> split_regex(const std::string& s, std::regex& pattern) {
@@ -473,20 +365,7 @@ std::vector<std::string> split_regex(const std::string& s, std::regex& pattern, 
 	return result;
 }
 
-std::pair<std::string, std::string> split_once_regex(const std::string& s, const std::regex& pattern) {
-	std::smatch match;
-	if (!std::regex_search(s, match, pattern)) {
-		Logger::critical("Failed to find regex in '{}'", s);
-	}
-
-	auto match_start = match.position(0);
-	auto match_end = match_start + match.length(0);
-
-	return {
-		s.substr(0, match_start),
-		s.substr(match_end)
-	};
-}
+std::pair<std::string, std::string> split_once_regex(const std::string& s, const std::regex& pattern);
 
 template<typename T, typename U>
 std::pair<T, U> split_once_regex(const std::string& s, const std::regex& pattern) {
@@ -520,61 +399,14 @@ std::pair<T, T> split_once_regex(const std::string& s, const std::regex& pattern
 	};
 }
 
-std::vector<std::string> find_all_regex(const std::string& s, std::regex& pattern) {
-	std::sregex_iterator iter(s.begin(), s.end(), pattern);
-	std::sregex_iterator end;
-	std::vector<std::string> result{};
-	while (iter != end) {
-		std::smatch match = *iter;
-		result.push_back(match[1]);
-		++iter;
-	}
-	return result;
-}
+std::vector<std::string> find_all_regex(const std::string& s, std::regex& pattern);
 
-bool isDigit(char c) {
-	return '0' <= c && c <= '9';
-}
+bool isDigit(char c);
+bool isLowercase(char c);
+bool isUppercase(char c);
+bool isHex(char c);
 
-bool isLowercase(char c) {
-	return 'a' <= c && c <= 'z';
-}
-
-bool isUppercase(char c) {
-	return 'A' <= c && c <= 'Z';
-}
-
-bool isHex(char c) {
-	return ('0' <= c && c <= '9') || ('a' <= c && c <= 'f');
-}
-
-std::string format_time(std::chrono::duration<std::chrono::nanoseconds::rep, std::chrono::nanoseconds::period> duration) {
-	std::string result = "";
-	const int64_t lengths[] = {
-		// nano
-		1000, //micro
-		1000, //milli
-		1000, //sec
-		60, // min
-		60, // hours
-		24, // days
-		365 // years
-	};
-
-	const char* names[] = {" ns", " \xE6s ", " ms ", " s ", " min ", " h ", " d "};
-
-	auto rest = duration.count();
-	int i = 0;
-	while (rest != 0 && i < 7) {
-		result.insert(0, std::to_string(rest % lengths[i]) + names[i]);
-		rest /= lengths[i];
-		i++;
-	}
-	if (rest != 0) {
-		result = std::to_string(rest) + " a " + result;
-	}
-	return result;
-}
+std::string format_time(std::chrono::duration<std::chrono::nanoseconds::rep, std::chrono::nanoseconds::period> duration);
 
 template<typename Result, typename... Args>
 struct Test {
@@ -620,19 +452,19 @@ public:
 	}
 
 	void add_test_string(const std::string& input, Result expected, Args... args) {
-		tests.push_back(Test<Result, Args...>(input, expected, false, args...));
+		tests.push_back(Test<Result, Args...>(input, expected, false, {args...}));
 	}
 
 	void add_test_file(const std::string& filename, Result expected, Args... args) {
-		tests.push_back(Test<Result, Args...>(filename, expected, true, args...));
+		tests.push_back(Test<Result, Args...>(filename, expected, true, {args...}));
 	}
 
 	void add_input_string(const std::string& input, Args... args) {
-		inputs.push_back(Input<Args...>(input, false, args...));
+		inputs.push_back(Input<Args...>(input, false, {args...}));
 	}
 
 	void add_input_file(const std::string& filename, Args... args) {
-		inputs.push_back(Input<Args...>(filename, true, args...));
+		inputs.push_back(Input<Args...>(filename, true, {args...}));
 	}
 
 	bool run_test(const Test<Result, Args...>& test) {
@@ -722,19 +554,13 @@ public:
 	std::vector<Result> run() {
 		if (!run_tests()) return {};
 		run_inputs();
+
+		Logger::info("");
 		return results;
 	}
 };
 
-std::vector<size_t> find_all_idx(const std::string& s, const std::string& pattern) {
-	std::vector<size_t> idxs{};
-	size_t last_idx = s.find(pattern);
-	while (last_idx != std::string::npos) {
-		idxs.push_back(last_idx);
-		last_idx = s.find(pattern, last_idx+1);
-	}
-	return idxs;
-}
+std::vector<size_t> find_all_idx(const std::string& s, const std::string& pattern);
 
 template<typename T>
 std::ostream& operator<< (std::ostream& os, const std::vector<T>& list) {
@@ -785,46 +611,23 @@ enum class Dir {
 	DOWN
 };
 
-Vec2i dir_vec(Dir dir) {
-	switch (dir) {
-    	case Dir::LEFT: return {-1, 0};
-    	case Dir::RIGHT: return {1, 0};
-    	case Dir::UP: return {0, -1};
-    	case Dir::DOWN: return {0, 1};
-	}
-}
+Vec2i dir_vec(Dir dir);
 
-std::string str(char c) {
-	return {c};
-}
+std::vector<Vec2i> all_dirs();
 
-std::string str(int i) {
-	return std::to_string(i);
-}
+std::vector<Vec2i> all_dirs_diag();
 
-std::string str(double i) {
-	return std::to_string(i);
-}
+std::string str(char c);
+std::string str(int i);
+std::string str(double i);
+std::string str(long i);
+std::string str(uint64_t i);
 
-std::string str(long i) {
-	return std::to_string(i);
-}
+std::vector<size_t> find_all_idx(const std::string& s, char pattern);
 
-std::string str(uint64_t i) {
-	return std::to_string(i);
-}
+size_t find_nth(const std::string& s, char pattern, size_t n);
 
-std::vector<size_t> find_all_idx(const std::string& s, char pattern) {
-	return find_all_idx(s, str(pattern));
-}
-
-size_t find_nth(const std::string& s, char pattern, size_t n) {
-	return find_nth(s, str(pattern), n);
-}
-
-std::string replace_all(const std::string& s, char pattern, const std::string& replace) {
-	return replace_all(s, str(pattern), replace);
-}
+std::string replace_all(const std::string& s, char pattern, const std::string& replace);
 
 template<typename T>
 std::vector<T> max_n(std::vector<T> list, size_t n) {
@@ -949,6 +752,80 @@ std::map<T, std::vector<U>> invert_map_vec(const std::map<U, std::vector<T>>& ma
 		}
 	}
 	return res;
+}
+
+std::vector<int> diffs(const std::vector<int>& vec);
+std::vector<int> diffs(const std::vector<int>& vec1, const std::vector<int>& vec2);
+
+std::vector<std::string> rotate90c(const std::vector<std::string>& matrix);
+
+template<typename T>
+std::vector<std::vector<T>> rotate90c(const std::vector<std::vector<T>>& matrix) {
+	int n = matrix.size();
+	auto res = std::vector<std::vector<T>>{};
+	for (int i = 0; i < n; ++i) {
+		res.emplace_back(std::vector<T>{});
+	}
+
+	for (int i = 0; i < n; ++i) {
+		for (int j = 0; j < n; ++j) {
+			res[i].emplace_back(matrix[n-j-1][i]);
+		}
+	}
+
+	return res;
+}
+
+template<typename T>
+std::vector<std::vector<T>> rotate90cc(const std::vector<std::vector<T>>& matrix) {
+	int n = matrix.size();
+	auto res = std::vector<std::vector<T>>{};
+	for (int i = 0; i < n; ++i) {
+		res.emplace_back(std::vector<T>{});
+	}
+
+	for (int i = 0; i < n; ++i) {
+		for (int j = 0; j < n; ++j) {
+			res[i].emplace_back(matrix[j][n-i-1]);
+		}
+	}
+
+	return res;
+}
+
+bool inbounds(int x, int y, int w, int h);
+
+bool inbounds(int x, int y, int w, int h, int bw, int bh);
+
+Vec2i arrow_dir(char c);
+
+template<typename T, typename U>
+struct std::hash<std::pair<T, U>> {
+	size_t operator()(const std::pair<T, U>& pair) const noexcept {
+		return std::hash<T>()(pair.first) ^ std::hash<U>()(pair.second);
+	}
+};
+
+template<typename... Ts>
+struct std::hash<std::tuple<Ts...>> {
+	size_t operator()(const std::tuple<Ts...>& tuple) const noexcept {
+		return std::apply([](const auto& ... xs){ return (std::hash<Ts>()(xs) ^ ...); }, tuple);
+	}
+};
+
+int num_len(long long n);
+
+template<typename T>
+T mod_math(T a, T b) {
+	return (a % b + b) % b;
+}
+
+template<typename T>
+constexpr std::optional<int> leading_zeros(T n) {
+	if (n == 0) return std::nullopt;
+	int i = sizeof(T) * 8 -1;
+	while (((1 << i) & n) == 0) --i;
+	return i;
 }
 
 #endif //UTILS_H
